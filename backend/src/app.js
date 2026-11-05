@@ -11,6 +11,19 @@ import { loadUser } from './sessions.js';
 import { errorHandler, notFound, wrap } from './http.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import { config } from './config.js';
+import { query } from './db.js';
+import { loadUser } from './sessions.js';
+import { errorHandler, notFound, wrap } from './http.js';
+import authRoutes from './routes/auth.js';
+import adminRoutes from './routes/admin.js';
 import subdivisionRoutes from './routes/subdivisions.js';
 import { reportsRouter, pulseRouter, alertsRouter } from './routes/community.js';
 
@@ -18,7 +31,8 @@ export function createApp() {
   const app = express();
   app.set('trust proxy', 1); // Render, Railway, Fly and friends sit behind one proxy
   // CSP is off because the frontend loads map tiles and inline styles; everything else in helmet stays on.
-  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' } }));
+  // OpenStreetMap refuses map tiles when no referrer is sent, so keep the origin in the referrer.
+  app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'cross-origin' }, referrerPolicy: { policy: 'strict-origin-when-cross-origin' } }));
   if (config.corsOrigins.length) app.use('/api', cors({ origin: config.corsOrigins, credentials: true }));
   app.use(express.json({ limit: '600kb' }));
 
